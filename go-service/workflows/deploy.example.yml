@@ -1,0 +1,109 @@
+name: Build and Deploy (Multi-Stage)
+
+on:
+  push:
+    branches: 
+      - "main"  
+      - "develop"       # Develop
+      - "test"          # Test
+      - "release/*"     # UAT (release/v1.0.0)
+    tags:
+      - "v*.*.*"        # Prod (v1.0.0 when tag is created)
+
+jobs:
+  setup:
+    runs-on: self-hosted
+    outputs:
+      env_name: ${{ steps.calc.outputs.env_name }}
+      kube_ns: ${{ steps.calc.outputs.kube_ns }}
+      version: ${{ steps.calc.outputs.version }}
+      docker_tag: ${{ steps.calc.outputs.docker_tag }}
+    steps:
+      - name: Calculate Vars
+        id: calc
+        run: |
+          SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
+          
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            # --- PRODUCTION ---
+            echo "env_name=prod" >> $GITHUB_OUTPUT
+            echo "kube_ns=default" >> $GITHUB_OUTPUT
+            VERSION=${GITHUB_REF#refs/tags/}
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "docker_tag=$VERSION" >> $GITHUB_OUTPUT
+            
+          elif [[ $GITHUB_REF == refs/heads/release/* ]]; then
+            # --- UAT ---
+            echo "env_name=uat" >> $GITHUB_OUTPUT
+            echo "kube_ns=uat" >> $GITHUB_OUTPUT
+            VERSION=${GITHUB_REF#refs/heads/release/}
+            echo "version=$VERSION-rc.${SHORT_SHA}" >> $GITHUB_OUTPUT
+            echo "docker_tag=uat-latest" >> $GITHUB_OUTPUT
+
+          elif [[ $GITHUB_REF == refs/heads/test ]]; then
+            # --- TEST ---
+            echo "env_name=test" >> $GITHUB_OUTPUT
+            echo "kube_ns=test" >> $GITHUB_OUTPUT
+            echo "version=0.0.0-test.${SHORT_SHA}" >> $GITHUB_OUTPUT
+            echo "docker_tag=test-latest" >> $GITHUB_OUTPUT
+
+          else
+            # --- DEVELOP ---
+            echo "env_name=develop" >> $GITHUB_OUTPUT
+            echo "kube_ns=develop" >> $GITHUB_OUTPUT
+            echo "version=0.0.0-develop.${SHORT_SHA}" >> $GITHUB_OUTPUT
+            echo "docker_tag=develop-latest" >> $GITHUB_OUTPUT
+          fi
+
+  deploy:
+    needs: setup
+    runs-on: self-hosted
+    environment: ${{ needs.setup.outputs.env_name }}
+
+    steps:
+      - name: Checkout App Code
+        uses: actions/checkout@v4
+        with:
+          path: src
+
+      - name: Checkout Charts Library
+        uses: actions/checkout@v4
+        with:
+          repository: gurkanucar/infra-templates
+          path: charts
+          # token: ${{ secrets.GH_PAT_TOKEN }}# for private repos
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: docker
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./src
+          push: true
+          tags: |
+            127.0.0.1:5000/gofiber-helloworld:${{ needs.setup.outputs.docker_tag }}
+            127.0.0.1:5000/gofiber-helloworld:${{ github.sha }}
+            127.0.0.1:5000/gofiber-helloworld:${{ needs.setup.outputs.version }}
+
+      - name: Deploy to K3s using Helm
+        run: |
+          ENV_NAME="${{ needs.setup.outputs.env_name }}"
+          KUBE_NS="${{ needs.setup.outputs.kube_ns }}"
+          VERSION="${{ needs.setup.outputs.version }}"
+          
+          helm upgrade --install fiber-app-$ENV_NAME ./charts/go-service \
+            --namespace $KUBE_NS \
+            --create-namespace \
+            -f ./charts/go-service/values.yaml \
+            -f ./src/helm/values.yaml \
+            -f ./src/helm/values-$ENV_NAME.yaml \
+            --set image.tag=$VERSION \
+            --set appVersion=$VERSION \
+            --set env.APP_VERSION="$VERSION" \
+            --set env.GIT_COMMIT_SHA="${{ github.sha }}" \
+            --set secrets.DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
+            --set secrets.JWT_SECRET="${{ secrets.JWT_SECRET }}" \
+            --wait
