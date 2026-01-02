@@ -35,6 +35,6 @@ spec:
             name: {{ .Values.appName }}-secret  
         livenessProbe:
           httpGet:
-            path: /health
+            path: /api/health
             port: {{ .Values.service.port }}
           initialDelaySeconds: 5
