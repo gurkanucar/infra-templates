@@ -1,0 +1,47 @@
+appName: todo-service-dev
+namespace: dev
+
+image:
+  repository: 127.0.0.1:5000/todo-service
+  tag: dev-latest
+  pullPolicy: Always
+
+service:
+  port: 3000
+
+resources:
+  requests:
+    cpu: "50m"
+    memory: "64Mi"
+  limits:
+    cpu: "250m"
+    memory: "128Mi"
+
+autoscaling:
+  enabled: false
+
+ingress:
+  enabled: true
+  main:
+    enabled: true
+    host: dev.api.mydomain.com
+  subpath:
+    enabled: true
+    host: dev.apps.mydomain.com
+    path: /todo-service
+    stripPrefix: true
+
+basicAuth:
+  enabled: true
+  users:
+    - "dev:$apr1$H6uskkkW$IgXLP6ewn3SnUL3ki/kko/"
+
+env:
+  APP_ENV: "development"
+  LOG_LEVEL: "debug"
+  FIBER_PREFORK: "false"
+
+secrets:
+  DB_PASSWORD: ""
+  JWT_SECRET: ""
+  API_KEY: ""

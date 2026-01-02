@@ -1,0 +1,71 @@
+# -----------------------------------------------------------------
+# GENERIC GO SERVICE CHART - DEFAULT VALUES
+# This file contains default settings. 
+# It should be overridden on a per-project basis (e.g., values-prod.yaml).
+# -----------------------------------------------------------------
+
+# Application Name (Deployment, Service, and Pod names are derived from this)
+appName: generic-go-service
+namespace: default
+
+# Docker Image Settings
+image:
+  repository: your-registry/your-image-name # Ex: ghcr.io/username/repo-name
+  tag: latest
+  pullPolicy: IfNotPresent # 'Always' is recommended for dev/staging, 'IfNotPresent' for prod
+
+# Internal Application Port (The port your Go app listens on)
+service:
+  port: 8080
+
+# Resource Usage (Defaults are set low; override per project requirements)
+resources:
+  requests:
+    cpu: "50m"
+    memory: "64Mi"
+  limits:
+    cpu: "250m"
+    memory: "128Mi"
+
+# Horizontal Pod Autoscaling (HPA)
+autoscaling:
+  enabled: false # Default is false, enable in production values
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 75
+
+# Ingress Settings (External Access via Traefik & Cert-Manager)
+ingress:
+  enabled: false
+  
+  # Main Domain Configuration (e.g., api.example.com)
+  main:
+    enabled: false
+    host: chart-example.local
+  
+  # Subpath Configuration (e.g., apps.example.com/service-name)
+  subpath:
+    enabled: false
+    host: apps.example.local
+    path: /generic-path
+    stripPrefix: true
+
+# Basic Auth (Traefik Middleware)
+basicAuth:
+  enabled: false
+  # Format: htpasswd (user:hashed_password)
+  # Example (user: admin, pass: password): admin:$apr1$xyz...
+  users: []
+
+# Environment Variables (ConfigMap)
+env:
+  APP_ENV: "production"
+  LOG_LEVEL: "info"
+  GIT_COMMIT_SHA: "" # Populated automatically by the CI/CD pipeline
+
+# Sensitive Data (Secrets)
+# Leave these values empty here. They will be injected via the CI/CD pipeline (GitHub Secrets).
+secrets:
+  DB_PASSWORD: ""
+  JWT_SECRET: ""
+  API_KEY: ""
