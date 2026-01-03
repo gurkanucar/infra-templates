@@ -6,6 +6,5 @@ metadata:
   labels:
     app: {{ .Values.appName }}
 data:
-  {{- range $key, $val := .Values.env }}
-  {{ $key }}: {{ $val | quote }}
-  {{- end }}
+  config.yaml: |
+    {{ .Values.appConfig }}
