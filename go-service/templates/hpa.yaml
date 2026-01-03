@@ -3,6 +3,9 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: {{ .Values.appName }}-hpa
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Values.appName }}
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
@@ -30,4 +33,8 @@ spec:
       - type: Percent
         value: 100
         periodSeconds: 15
+      - type: Pods
+        value: 2
+        periodSeconds: 15
+      selectPolicy: Max
 {{- end }}

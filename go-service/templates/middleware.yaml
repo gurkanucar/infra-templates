@@ -3,20 +3,26 @@ apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
   name: {{ .Values.appName }}-strip-prefix
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Values.appName }}
 spec:
   stripPrefix:
     prefixes:
-      - {{ .Values.ingress.subpath.path }}
+    - {{ .Values.ingress.subpath.path }}
     forceSlash: false
 {{- end }}
 
 ---
-# --- BASIC AUTH MIDDLEWARE & SECRET ---
 {{- if .Values.basicAuth.enabled }}
 apiVersion: v1
 kind: Secret
 metadata:
   name: {{ .Values.appName }}-basic-auth-secret
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Values.appName }}
+type: Opaque
 data:
   users: {{ join "\n" .Values.basicAuth.users | b64enc | quote }}
 
@@ -25,6 +31,9 @@ apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
   name: {{ .Values.appName }}-basic-auth
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Values.appName }}
 spec:
   basicAuth:
     secret: {{ .Values.appName }}-basic-auth-secret

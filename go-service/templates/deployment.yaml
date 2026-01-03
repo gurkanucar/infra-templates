@@ -2,8 +2,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ .Values.appName }}
+  namespace: {{ .Release.Namespace }}
   labels:
     app: {{ .Values.appName }}
+    version: {{ .Values.appVersion | default .Chart.AppVersion | quote }}
 spec:
   replicas: {{ .Values.autoscaling.minReplicas }}
   selector:
@@ -18,6 +20,7 @@ spec:
     metadata:
       labels:
         app: {{ .Values.appName }}
+        version: {{ .Values.appVersion | default .Chart.AppVersion | quote }}
     spec:
       containers:
       - name: {{ .Values.appName }}
@@ -25,15 +28,28 @@ spec:
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         ports:
         - containerPort: {{ .Values.service.port }}
+          name: http
+          protocol: TCP
         resources:
           {{- toYaml .Values.resources | nindent 10 }}
         envFrom:
         - configMapRef:
             name: {{ .Values.appName }}-config
         - secretRef:
-            name: {{ .Values.appName }}-secret  
+            name: {{ .Values.appName }}-secret
         livenessProbe:
           httpGet:
             path: /api/health
             port: {{ .Values.service.port }}
+          initialDelaySeconds: 30  # Artırıldı
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:  # EKLEME
+          httpGet:
+            path: /api/health
+            port: {{ .Values.service.port }}
           initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
