@@ -7,4 +7,4 @@ metadata:
     app: {{ .Values.appName }}
 data:
   config.yaml: |
-    {{ .Values.appConfig }}
+    {{- .Values.appConfig | nindent 4 }}
