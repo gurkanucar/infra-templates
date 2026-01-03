@@ -41,11 +41,11 @@ spec:
           httpGet:
             path: /api/health
             port: {{ .Values.service.port }}
-          initialDelaySeconds: 30  # Artırıldı
+          initialDelaySeconds: 30
           periodSeconds: 10
           timeoutSeconds: 5
           failureThreshold: 3
-        readinessProbe:  # EKLEME
+        readinessProbe:
           httpGet:
             path: /api/health
             port: {{ .Values.service.port }}
