@@ -1,15 +1,3 @@
-# --- GO FIBER CONFIGURATION ---
-appName: fiber-app
-
-# Config File Settings
-config:
-  fileName: "config.yaml"
-
-# Health Check Settings (Go specific)
-probes:
-  path: "/api/health"
-  initialDelaySeconds: 10
-
 # Docker Image Settings
 image:
   repository: 127.0.0.1:5000/gofiber-helloworld
@@ -18,19 +6,16 @@ image:
 
 # Kubernetes Service Port
 service:
-  port: 8080
+  port: 8080 
 
-# Application Configuration Content (Will be injected into config.yaml)
-appConfig: |
-  app:
-    name: fiber-app
-    environment: "develop"
-    debug: true
-    logLevel: "debug"
-  server:
-    port: 8080
+probes:
+  path: "/api/health"
+  initialDelaySeconds: 10
 
-# Resource Usage (Go is lightweight)
+config:
+  fileName: "config.yaml"
+
+# Resource Usage
 resources:
   requests:
     cpu: "100m"
@@ -42,8 +27,8 @@ resources:
 # Autoscaling
 autoscaling:
   enabled: true
-  minReplicas: 2
-  maxReplicas: 5
+  minReplicas: 3
+  maxReplicas: 10
   targetCPUUtilizationPercentage: 50
 
 # Ingress
@@ -51,23 +36,20 @@ ingress:
   enabled: true
   main:
     enabled: true
-    host: dev.goapp.domain.com
+    host: dev.goapp.stagingenvironment.space
   subpath:
     enabled: true
-    host: dev.apps.domain.com
+    host: dev.apps.stagingenvironment.space
     path: /goapp
     stripPrefix: true
-
-# Environment Variables
-env:
-  APP_ENV: "develop"
-
-# Secrets (Injects into env vars)
-secrets:
-  DB_PASSWORD: ""
-  JWT_SECRET: ""
-  API_KEY: ""
 
 basicAuth:
   enabled: false
   users: []
+
+# Secrets (Helm chart will convert these to environment variables)
+# Put them into github secret manager
+secrets:
+  DB_PASSWORD: ""
+  JWT_SECRET: ""
+  API_KEY: ""
