@@ -1,0 +1,73 @@
+# --- GO FIBER CONFIGURATION ---
+appName: fiber-app
+
+# Config File Settings
+config:
+  fileName: "config.yaml"
+
+# Health Check Settings (Go specific)
+probes:
+  path: "/api/health"
+  initialDelaySeconds: 10
+
+# Docker Image Settings
+image:
+  repository: 127.0.0.1:5000/gofiber-helloworld
+  tag: latest
+  pullPolicy: Always
+
+# Kubernetes Service Port
+service:
+  port: 8080
+
+# Application Configuration Content (Will be injected into config.yaml)
+appConfig: |
+  app:
+    name: fiber-app
+    environment: "develop"
+    debug: true
+    logLevel: "debug"
+  server:
+    port: 8080
+
+# Resource Usage (Go is lightweight)
+resources:
+  requests:
+    cpu: "100m"
+    memory: "64Mi"
+  limits:
+    cpu: "500m"
+    memory: "256Mi"
+
+# Autoscaling
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 50
+
+# Ingress
+ingress:
+  enabled: true
+  main:
+    enabled: true
+    host: dev.goapp.domain.com
+  subpath:
+    enabled: true
+    host: dev.apps.domain.com
+    path: /goapp
+    stripPrefix: true
+
+# Environment Variables
+env:
+  APP_ENV: "develop"
+
+# Secrets (Injects into env vars)
+secrets:
+  DB_PASSWORD: ""
+  JWT_SECRET: ""
+  API_KEY: ""
+
+basicAuth:
+  enabled: false
+  users: []

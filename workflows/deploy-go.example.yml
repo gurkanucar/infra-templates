@@ -18,6 +18,7 @@ jobs:
       kube_ns: ${{ steps.calc.outputs.kube_ns }}
       version: ${{ steps.calc.outputs.version }}
       docker_tag: ${{ steps.calc.outputs.docker_tag }}
+      app_name: ${{ steps.calc.outputs.app_name }}
     steps:
       - name: Calculate Vars
         id: calc
@@ -31,6 +32,7 @@ jobs:
             VERSION=${GITHUB_REF#refs/tags/}
             echo "version=$VERSION" >> $GITHUB_OUTPUT
             echo "docker_tag=$VERSION" >> $GITHUB_OUTPUT
+            echo "app_name=fiber-app" >> $GITHUB_OUTPUT
             
           elif [[ $GITHUB_REF == refs/heads/release/* ]]; then
             # --- UAT ---
@@ -39,13 +41,15 @@ jobs:
             VERSION=${GITHUB_REF#refs/heads/release/}
             echo "version=$VERSION-rc.${SHORT_SHA}" >> $GITHUB_OUTPUT
             echo "docker_tag=uat-latest" >> $GITHUB_OUTPUT
-
+            echo "app_name=fiber-app-uat" >> $GITHUB_OUTPUT
+        
           elif [[ $GITHUB_REF == refs/heads/test ]]; then
             # --- TEST ---
             echo "env_name=test" >> $GITHUB_OUTPUT
             echo "kube_ns=test" >> $GITHUB_OUTPUT
             echo "version=0.0.0-test.${SHORT_SHA}" >> $GITHUB_OUTPUT
             echo "docker_tag=test-latest" >> $GITHUB_OUTPUT
+            echo "app_name=fiber-app-test" >> $GITHUB_OUTPUT
 
           else
             # --- DEVELOP ---
@@ -53,6 +57,7 @@ jobs:
             echo "kube_ns=develop" >> $GITHUB_OUTPUT
             echo "version=0.0.0-develop.${SHORT_SHA}" >> $GITHUB_OUTPUT
             echo "docker_tag=develop-latest" >> $GITHUB_OUTPUT
+            echo "app_name=fiber-app-dev" >> $GITHUB_OUTPUT
           fi
 
   deploy:
@@ -93,17 +98,26 @@ jobs:
           ENV_NAME="${{ needs.setup.outputs.env_name }}"
           KUBE_NS="${{ needs.setup.outputs.kube_ns }}"
           VERSION="${{ needs.setup.outputs.version }}"
+          APP_NAME="${{ needs.setup.outputs.app_name }}"
           
-          helm upgrade --install fiber-app-$ENV_NAME ./charts/go-service \
+          VALUES_FILE="./src/deploy/$ENV_NAME/values.yaml"
+          CONFIG_FILE="./src/deploy/$ENV_NAME/config.yaml"
+
+          ls -la $VALUES_FILE
+          ls -la $CONFIG_FILE
+
+          helm upgrade --install $APP_NAME ./charts/go-service \
             --namespace $KUBE_NS \
             --create-namespace \
-            -f ./charts/go-service/values.yaml \
-            -f ./src/helm/values.yaml \
-            -f ./src/helm/values-$ENV_NAME.yaml \
-            --set image.tag=$VERSION \
+            -f $VALUES_FILE \
+            --set appName=$APP_NAME \
             --set appVersion=$VERSION \
-            --set env.APP_VERSION="$VERSION" \
+            --set image.tag=$VERSION \
+            --set-file appConfig=$CONFIG_FILE \
             --set env.GIT_COMMIT_SHA="${{ github.sha }}" \
             --set secrets.DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
             --set secrets.JWT_SECRET="${{ secrets.JWT_SECRET }}" \
-            --wait
+            --set secrets.API_KEY="${{ secrets.API_KEY }}" \
+            --wait \
+            --timeout 5m \
+            --debug

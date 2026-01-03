@@ -22,6 +22,7 @@ spec:
         app: {{ .Values.appName }}
         version: {{ .Values.appVersion | default .Chart.AppVersion | quote }}
       annotations:
+        # Automatically restart pods if the appConfig content changes
         checksum/config: {{ .Values.appConfig | sha256sum }}
     spec:
       containers:
@@ -35,36 +36,44 @@ spec:
         resources:
           {{- toYaml .Values.resources | nindent 10 }}
         
+        # Mounts the ConfigMap as a file inside the container
         volumeMounts:
         - name: config-volume
           mountPath: /app/config
           readOnly: true
 
+        # Inject secrets from the generated Secret resource
         envFrom:
         - secretRef:
             name: {{ .Values.appName }}-secret
+        
+        # Inject explicit environment variables from values.yaml
         env:
         {{- range $key, $val := .Values.env }}
         - name: {{ $key }}
           value: {{ $val | quote }}
         {{- end }}
 
+        # Liveness Probe: Checks if the application is running
         livenessProbe:
           httpGet:
-            path: /api/health
+            path: {{ .Values.probes.path | default "/api/health" }}
             port: {{ .Values.service.port }}
-          initialDelaySeconds: 30
+          initialDelaySeconds: {{ .Values.probes.initialDelaySeconds | default 30 }}
           periodSeconds: 10
           timeoutSeconds: 5
           failureThreshold: 3
+
+        # Readiness Probe: Checks if the application is ready to accept traffic
         readinessProbe:
           httpGet:
-            path: /api/health
+            path: {{ .Values.probes.path | default "/api/health" }}
             port: {{ .Values.service.port }}
           initialDelaySeconds: 5
           periodSeconds: 5
           timeoutSeconds: 3
           failureThreshold: 3
+          
       volumes:
       - name: config-volume
         configMap:

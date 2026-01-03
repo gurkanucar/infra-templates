@@ -6,5 +6,5 @@ metadata:
   labels:
     app: {{ .Values.appName }}
 data:
-  config.yaml: |
+  {{ .Values.config.fileName | default "config.yaml" }}: |
     {{- .Values.appConfig | nindent 4 }}

@@ -1,0 +1,66 @@
+# --- SPRING BOOT (YAML) CONFIGURATION ---
+appName: spring-boot-app
+
+# Config File Settings
+config:
+  fileName: "application.yaml"
+
+# Health Check Settings (Spring Actuator)
+probes:
+  path: "/actuator/health"
+  initialDelaySeconds: 60 # JVM takes longer to start
+
+# Docker Image Settings
+image:
+  repository: 127.0.0.1:5000/spring-boot-demo
+  tag: latest
+  pullPolicy: Always
+
+# Kubernetes Service Port
+service:
+  port: 8080
+
+# Application Configuration Content (Will be injected into application.yaml)
+appConfig: ""
+
+# Resource Usage (JVM needs more memory)
+resources:
+  requests:
+    cpu: "200m"
+    memory: "256Mi"
+  limits:
+    cpu: "1000m"
+    memory: "512Mi"
+
+# Autoscaling
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 70
+
+# Ingress
+ingress:
+  enabled: true
+  main:
+    enabled: true
+    host: dev.java.domain.com
+  subpath:
+    enabled: true
+    host: dev.apps.domain.com
+    path: /java-app
+    stripPrefix: true
+
+# Environment Variables
+env:
+  SPRING_PROFILES_ACTIVE: "dev"
+  # Optimize JVM for Container
+  JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0 -XX:+UseContainerSupport"
+
+# Secrets
+secrets:
+  SPRING_DATASOURCE_PASSWORD: ""
+
+basicAuth:
+  enabled: false
+  users: []

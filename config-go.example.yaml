@@ -1,0 +1,8 @@
+app:
+  name: fiber-app
+  environment: "develop"
+  debug: true
+  logLevel: "debug"
+
+server:
+  port: 8080
