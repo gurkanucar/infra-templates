@@ -118,7 +118,7 @@ jobs:
           ls -la $VALUES_FILE
           ls -la $CONFIG_FILE
 
-          helm upgrade --install $APP_NAME ./charts/generic-service \
+          helm upgrade --install $APP_NAME ./charts \
             --namespace $KUBE_NS \
             --create-namespace \
             -f $VALUES_FILE \
